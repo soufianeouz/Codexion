@@ -2,6 +2,41 @@
 
 
 
+
+void *monitor(void *arg){
+
+    int i ;
+    t_config *my_config = (t_config *)arg;
+
+    while(1)
+    {
+        pthread_mutex_lock(&my_config->mutex_for_stop);
+        my_config->stop = 1;
+        i = 0;
+        while (i < my_config->number_of_coders)
+        {
+            if (my_config->all_codes[i].compile_count <
+                my_config->number_of_compiles_required)
+            {
+                my_config->stop = 0;
+                break;
+            }
+            i++;
+        }
+
+        if (my_config->stop == 1){
+            pthread_mutex_unlock(&my_config->mutex_for_stop);
+            break;
+        }
+        pthread_mutex_unlock(&my_config->mutex_for_stop);
+        usleep(1000);
+    }
+    return NULL;
+}
+
+
+
+
 void *coder_thread(void *arg){
 
 
@@ -46,7 +81,10 @@ void *coder_thread(void *arg){
 
         pthread_mutex_unlock(&a_coder->right->mutex);
         pthread_mutex_unlock(&a_coder->left->mutex);
+        // a_coder->compile_count++;
+        pthread_mutex_lock(&a_coder->config->mutex_for_stop);
         a_coder->compile_count++;
+        pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
 
         a_coder->state = DEBUGGING;
         gettimeofday(&tv, NULL);
@@ -64,24 +102,17 @@ void *coder_thread(void *arg){
         pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
         usleep(a_coder->config->time_to_refactor * 1000);
 
-        // if (a_coder->compile_count >= a_coder->config->number_of_compiles_required)
-        //     break;
-        // int i = 0;
-        // while (i < a_coder->config->number_of_coders)
-        // {
-        //     // if (a_coder->compile_count <= a_coder->config->number_of_compiles_required)
-        //     if (a_coder->config->all_codes->)
-        //     {
-        //         a_coder->config->stop = 0;
-        //         break;
-        //     }
-        //     i++;
-        // }
-        // if (a_coder->config->stop == 1)
-        //     break;
-        // else
-        //     a_coder->config->stop = 1;
+        pthread_mutex_lock(&a_coder->config->mutex_for_stop);
+
+        if (a_coder->config->stop == 1)
+        {
+            pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
+            break;
+        }
+
+        pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
     }
+
     pthread_mutex_lock(&a_coder->config->mutex_for_printing);
     printf("%d\n", a_coder->compile_count);
     pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
@@ -175,6 +206,7 @@ int main(int argc, char **argv){
         i++;
     }
     
+    my_confg.all_dongles = my_dongles;
 
 
     // this part is creating coders
@@ -205,6 +237,7 @@ int main(int argc, char **argv){
         i++;
     }
 
+    my_confg.all_codes = my_coders;
 
     // end of parsing 
 
@@ -219,18 +252,25 @@ int main(int argc, char **argv){
         return 0;
     }
 
+
+
     i = 0;
     while (i < my_confg.number_of_coders)
     {
         pthread_create(threads + i, NULL, coder_thread, my_coders + i);
         i++;
     }
+
+    pthread_t my_monitor;
+
+    pthread_create(&my_monitor, NULL, monitor, &my_confg);
     i = 0;
     while (i <  my_confg.number_of_coders)
     {
         pthread_join(threads[i], NULL);
         i++;
     }
+
 
 
 

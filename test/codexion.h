@@ -35,6 +35,7 @@ struct s_coder
 
     t_config *config;
 };
+
 struct s_dongle
 {
     pthread_mutex_t mutex;
