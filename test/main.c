@@ -3,20 +3,54 @@
 
 
 
-void *monitor(void *arg){
-
-    int i ;
+void *monitor(void *arg)
+{
+    int i;
     t_config *my_config = (t_config *)arg;
+    struct timeval tv;
+    long long current_time;
 
-    while(1)
+    while (1)
     {
         pthread_mutex_lock(&my_config->mutex_for_stop);
-        my_config->stop = 1;
+
+        /*
+         * 1. Check burnout
+         */
         i = 0;
         while (i < my_config->number_of_coders)
         {
-            if (my_config->all_codes[i].compile_count <
-                my_config->number_of_compiles_required)
+            gettimeofday(&tv, NULL);
+            current_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+
+            if (current_time - my_config->all_codes[i].last_compile_start
+                >= my_config->time_to_burnout)
+            {
+                pthread_mutex_lock(&my_config->mutex_for_printing);
+                printf("%lld %d burned out\n",
+                    current_time,
+                    my_config->all_codes[i].id);
+                pthread_mutex_unlock(&my_config->mutex_for_printing);
+
+                my_config->stop = 1;
+
+                pthread_mutex_unlock(&my_config->mutex_for_stop);
+                return NULL;
+            }
+            i++;
+        }
+
+        /*
+         * 2. Check if ALL coders reached
+         *    number_of_compiles_required
+         */
+        my_config->stop = 1;
+
+        i = 0;
+        while (i < my_config->number_of_coders)
+        {
+            if (my_config->all_codes[i].compile_count
+                < my_config->number_of_compiles_required)
             {
                 my_config->stop = 0;
                 break;
@@ -24,13 +58,20 @@ void *monitor(void *arg){
             i++;
         }
 
-        if (my_config->stop == 1){
+        /*
+         * Everybody finished.
+         */
+        if (my_config->stop == 1)
+        {
             pthread_mutex_unlock(&my_config->mutex_for_stop);
-            break;
+            return NULL;
         }
+
         pthread_mutex_unlock(&my_config->mutex_for_stop);
+
         usleep(1000);
     }
+
     return NULL;
 }
 
@@ -73,6 +114,11 @@ void *coder_thread(void *arg){
         a_coder->state = COMPILING;
         gettimeofday(&tv, NULL);
         timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
+
+        pthread_mutex_lock(&a_coder->config->mutex_for_stop);
+        a_coder->last_compile_start = timing;
+        pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
+
         pthread_mutex_lock(&a_coder->config->mutex_for_printing);
         printf("%lld %d is compiling\n",timing ,a_coder->id);
         pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
@@ -81,7 +127,6 @@ void *coder_thread(void *arg){
 
         pthread_mutex_unlock(&a_coder->right->mutex);
         pthread_mutex_unlock(&a_coder->left->mutex);
-        // a_coder->compile_count++;
         pthread_mutex_lock(&a_coder->config->mutex_for_stop);
         a_coder->compile_count++;
         pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
@@ -113,9 +158,9 @@ void *coder_thread(void *arg){
         pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
     }
 
-    pthread_mutex_lock(&a_coder->config->mutex_for_printing);
-    printf("%d\n", a_coder->compile_count);
-    pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
+    // pthread_mutex_lock(&a_coder->config->mutex_for_printing);
+    // printf("%d\n", a_coder->compile_count);
+    // pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
 
 
     return NULL;
@@ -179,7 +224,7 @@ int main(int argc, char **argv){
 
     pthread_mutex_init(&my_confg.mutex_for_stop, NULL);
     pthread_mutex_init(&my_confg.mutex_for_printing, NULL);
-    my_confg.stop = 1;
+    my_confg.stop = 0;
     
     my_confg.all_codes = NULL;
     my_confg.all_dongles = NULL;
@@ -270,7 +315,7 @@ int main(int argc, char **argv){
         pthread_join(threads[i], NULL);
         i++;
     }
-
+    pthread_join(my_monitor, NULL);
 
 
 
