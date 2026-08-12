@@ -1,6 +1,34 @@
 #include "codexion.h"
+// void edf_request(t_dongle *dongle, t_coder *coder);
 
 
+void fifo_request(t_dongle *dongle, t_coder *coder){
+
+    
+    if (dongle->queue[0] == NULL){
+        dongle->queue[0] = coder;
+    }else if (dongle->queue[1] == NULL)
+    {
+
+        dongle->queue[1] = coder;
+    }
+    
+}
+
+int fifo_is_first(t_dongle *dongle, t_coder *coder){
+
+
+    if (dongle->queue[0] == coder)
+        return 1;
+    return 0;
+}
+
+void fifo_pop(t_dongle *dongle){
+ 
+
+    dongle->queue[0] = dongle->queue[1];
+    dongle->queue[1] = NULL;
+}
 
 
 void *monitor(void *arg)
@@ -259,6 +287,8 @@ int main(int argc, char **argv){
         my_dongles[i].taken = 0;
         my_dongles[i].last_released = 0;
         my_dongles[i].waiter_count = 0;
+        my_dongles[i].queue[0] = NULL;
+        my_dongles[i].queue[1] = NULL;
 
         // my_dongles[i] = a_dongle;
         i++;

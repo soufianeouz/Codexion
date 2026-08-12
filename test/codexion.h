@@ -42,6 +42,9 @@ struct s_dongle
     int taken;//Only if you need to know the state of the dongle without trying to lock it.
     long long last_released;
     int waiter_count;
+
+    t_coder *queue[2];
+    
 };
 struct s_config
 {
