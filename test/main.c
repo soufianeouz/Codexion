@@ -1,9 +1,53 @@
 #include "codexion.h"
-// void edf_request(t_dongle *dongle, t_coder *coder);
 
 
+
+
+void edf_request(t_dongle *dongle, t_coder *coder){
+
+    // if (dongle)
+
+    int i = 0;
+    long long deadline1;
+    long long deadline2;
+
+    while (i < 2)
+    {
+        if (dongle->queue[i] == coder)
+            return;
+        i++;
+    }
+
+    if (dongle->queue[0] == NULL){
+        dongle->queue[0] = coder;
+    }
+    else
+    {
+        deadline1 = dongle->queue[0]->last_compile_start + dongle->queue[0]->config->time_to_burnout;
+        deadline2 = coder->last_compile_start + coder->config->time_to_burnout;
+        if (deadline2 < deadline1){
+            dongle->queue[1] = dongle->queue[0];
+            dongle->queue[0] = coder;
+        }else
+            dongle->queue[1] = coder;
+    }
+    
+}
+
+
+
+
+// start of fifo concept 
 void fifo_request(t_dongle *dongle, t_coder *coder){
 
+    int i = 0;
+    while (i < 2)
+    {
+        if (dongle->queue[i] == coder)
+            return;
+        i++;
+    }
+    
     
     if (dongle->queue[0] == NULL){
         dongle->queue[0] = coder;
@@ -11,11 +55,10 @@ void fifo_request(t_dongle *dongle, t_coder *coder){
     {
 
         dongle->queue[1] = coder;
-    }
-    
+    }  
 }
 
-int fifo_is_first(t_dongle *dongle, t_coder *coder){
+int queue_is_first(t_dongle *dongle, t_coder *coder){
 
 
     if (dongle->queue[0] == coder)
@@ -23,13 +66,14 @@ int fifo_is_first(t_dongle *dongle, t_coder *coder){
     return 0;
 }
 
-void fifo_pop(t_dongle *dongle){
+void queue_pop(t_dongle *dongle){
  
 
     dongle->queue[0] = dongle->queue[1];
     dongle->queue[1] = NULL;
 }
 
+// end of fifo
 
 void *monitor(void *arg)
 {
@@ -127,83 +171,114 @@ void *coder_thread(void *arg){
             pthread_mutex_lock(&a_coder->right->mutex);
             pthread_mutex_lock(&a_coder->left->mutex);
         }
-        gettimeofday(&tv, NULL);
-        timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
 
-        if (timing - a_coder->left->last_released >= a_coder->config->dongle_cooldown &&
-            timing - a_coder->right->last_released >= a_coder->config->dongle_cooldown)
+
+        // call the fifo and edf algo
+        if (strcmp(a_coder->config->scheduler, "fifo") == 0)
         {
+            fifo_request(a_coder->left, a_coder);
+            fifo_request(a_coder->right, a_coder);
+        }
+        else if (strcmp(a_coder->config->scheduler, "edf") == 0)
+        {
+            edf_request(a_coder->left, a_coder);
+            edf_request(a_coder->right, a_coder);
+        }
+
+
+        if (queue_is_first(a_coder->left, a_coder)
+            && queue_is_first(a_coder->right, a_coder))
+        {
+            // my turn → take/compile
+
             gettimeofday(&tv, NULL);
             timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
-            pthread_mutex_lock(&a_coder->config->mutex_for_printing);
-            printf("%lld %d has taken a dongle\n", timing, a_coder->id);
-            pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
 
-            pthread_mutex_lock(&a_coder->config->mutex_for_printing);
-            printf("%lld %d has taken a dongle\n",timing ,a_coder->id);
-            pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
-
-            a_coder->state = COMPILING;
-            gettimeofday(&tv, NULL);
-            timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
-
-            pthread_mutex_lock(&a_coder->config->mutex_for_stop);
-            a_coder->last_compile_start = timing;
-            pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
-
-            pthread_mutex_lock(&a_coder->config->mutex_for_printing);
-            printf("%lld %d is compiling\n",timing ,a_coder->id);
-            pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
-            usleep(a_coder->config->time_to_compile * 1000);
-
-            // set the last_released to the dongle
-            gettimeofday(&tv, NULL);
-            timing = tv.tv_usec / 1000 + tv.tv_sec * 1000; 
-            a_coder->right->last_released = timing;
-            a_coder->left->last_released = timing;
-            
-
-            pthread_mutex_unlock(&a_coder->right->mutex);
-            pthread_mutex_unlock(&a_coder->left->mutex);
-            pthread_mutex_lock(&a_coder->config->mutex_for_stop);
-            a_coder->compile_count++;
-            pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
-
-            a_coder->state = DEBUGGING;
-            gettimeofday(&tv, NULL);
-            timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
-            pthread_mutex_lock(&a_coder->config->mutex_for_printing);
-            printf("%lld %d is debugging\n",timing ,a_coder->id);
-            pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
-            usleep(a_coder->config->time_to_debug * 1000);
-
-            a_coder->state = REFACTORING;
-            gettimeofday(&tv, NULL);
-            timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
-            pthread_mutex_lock(&a_coder->config->mutex_for_printing);
-            printf("%lld %d is refactoring\n",timing ,a_coder->id);
-            pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
-            usleep(a_coder->config->time_to_refactor * 1000);
-
-            pthread_mutex_lock(&a_coder->config->mutex_for_stop);
-
-            if (a_coder->config->stop == 1)
+            if (timing - a_coder->left->last_released >= a_coder->config->dongle_cooldown &&
+                timing - a_coder->right->last_released >= a_coder->config->dongle_cooldown)
             {
-                pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
-                break;
-            }
+                gettimeofday(&tv, NULL);
+                timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
+                pthread_mutex_lock(&a_coder->config->mutex_for_printing);
+                printf("%lld %d has taken a dongle\n", timing, a_coder->id);
+                pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
 
-            pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
+                pthread_mutex_lock(&a_coder->config->mutex_for_printing);
+                printf("%lld %d has taken a dongle\n",timing ,a_coder->id);
+                pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
+
+                a_coder->state = COMPILING;
+                gettimeofday(&tv, NULL);
+                timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
+
+                pthread_mutex_lock(&a_coder->config->mutex_for_stop);
+                a_coder->last_compile_start = timing;
+                pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
+
+                pthread_mutex_lock(&a_coder->config->mutex_for_printing);
+                printf("%lld %d is compiling\n",timing ,a_coder->id);
+                pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
+                usleep(a_coder->config->time_to_compile * 1000);
+
+                // remove coder from the queue
+
+                queue_pop(a_coder->left);
+                queue_pop(a_coder->right);
+
+
+                // set the last_released to the dongle
+
+                gettimeofday(&tv, NULL);
+                timing = tv.tv_usec / 1000 + tv.tv_sec * 1000; 
+                a_coder->right->last_released = timing;
+                a_coder->left->last_released = timing;
+                
+
+                pthread_mutex_unlock(&a_coder->right->mutex);
+                pthread_mutex_unlock(&a_coder->left->mutex);
+                pthread_mutex_lock(&a_coder->config->mutex_for_stop);
+                a_coder->compile_count++;
+                pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
+
+                a_coder->state = DEBUGGING;
+                gettimeofday(&tv, NULL);
+                timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
+                pthread_mutex_lock(&a_coder->config->mutex_for_printing);
+                printf("%lld %d is debugging\n",timing ,a_coder->id);
+                pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
+                usleep(a_coder->config->time_to_debug * 1000);
+
+                a_coder->state = REFACTORING;
+                gettimeofday(&tv, NULL);
+                timing = tv.tv_usec / 1000 + tv.tv_sec * 1000;
+                pthread_mutex_lock(&a_coder->config->mutex_for_printing);
+                printf("%lld %d is refactoring\n",timing ,a_coder->id);
+                pthread_mutex_unlock(&a_coder->config->mutex_for_printing);
+                usleep(a_coder->config->time_to_refactor * 1000);
+
+                pthread_mutex_lock(&a_coder->config->mutex_for_stop);
+
+                if (a_coder->config->stop == 1)
+                {
+                    pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
+                    break;
+                }
+
+                pthread_mutex_unlock(&a_coder->config->mutex_for_stop);
+            }else
+            {
+                a_coder->state = WAITING;
+                pthread_mutex_unlock(&a_coder->left->mutex);
+                pthread_mutex_unlock(&a_coder->right->mutex);
+                usleep(1000);
+            }
         }else
         {
-            a_coder->state = WAITING;
             pthread_mutex_unlock(&a_coder->left->mutex);
             pthread_mutex_unlock(&a_coder->right->mutex);
             usleep(1000);
         }
     }
-
-
     return NULL;
 }
 
