@@ -8,6 +8,14 @@ long long get_time_ms(void)
     return (tv.tv_sec * 1000 + tv.tv_usec / 1000);
 }
 
+void wait_dongles(t_coder *coder)
+{
+    pthread_mutex_lock(&coder->config->mutex_for_stop);
+    coder->state = WAITING;
+    pthread_mutex_unlock(&coder->config->mutex_for_stop);
+    unlock_dongles(coder);
+    usleep(1000);
+}
 
 void take_dongles(t_coder *coder)
 {
