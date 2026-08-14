@@ -68,5 +68,6 @@ struct s_config
 
 void *coder_thread(void *arg);
 void *monitor(void *arg);
+long long get_time_ms(void)
 
 #endif
