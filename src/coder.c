@@ -1,5 +1,22 @@
 #include "codexion.h"
 
+
+void request_dongles(t_coder *coder)
+{
+    if (strcmp(coder->config->scheduler, "fifo") == 0)
+    {
+        fifo_request(coder->left, coder);
+        fifo_request(coder->right, coder);
+    }
+    else
+    {
+        edf_request(coder->left, coder);
+        edf_request(coder->right, coder);
+    }
+}
+
+
+
 void *coder_thread(void *arg){
 
     t_coder *a_coder = (t_coder *)arg;
@@ -19,16 +36,8 @@ void *coder_thread(void *arg){
         }
 
         // call the fifo and edf algo
-        if (strcmp(a_coder->config->scheduler, "fifo") == 0)
-        {
-            fifo_request(a_coder->left, a_coder);
-            fifo_request(a_coder->right, a_coder);
-        }
-        else if (strcmp(a_coder->config->scheduler, "edf") == 0)
-        {
-            edf_request(a_coder->left, a_coder);
-            edf_request(a_coder->right, a_coder);
-        }
+        request_dongles(a_coder);
+
 
 
         if (queue_is_first(a_coder->left, a_coder)
