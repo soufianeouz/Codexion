@@ -302,48 +302,48 @@ int valid_int(char *str){
 int main(int argc, char **argv){
 
     // start parsing
-    int i = 1;
-    if (argc != 9){
-        fprintf(stderr, "Error, number of argument shoulld be 8\n");
-        return 1;
-    }
-    if (strcmp(argv[argc - 1], "fifo") && strcmp(argv[argc - 1], "edf"))
-    {
-        fprintf(stderr, "Error, the last output shoulld be fifo or edf\n");
-        return 1;
-    }
-    while (i < argc - 1)
-    {
-        if (valid_int(argv[i]) == 0){
-            fprintf(stderr, "Error: invalide input");
-            return 1;
-        }
-        if (i == 1 && atoi(argv[i]) == 0){
-            fprintf(stderr, "Error: number_of_coders must be greater than 0\n");
-            return 1;
-        }
-        // printf("%d\n", atoi(argv[i]));
-        i++;
-    }
+    // int i = 1;
+    // if (argc != 9){
+    //     fprintf(stderr, "Error, number of argument shoulld be 8\n");
+    //     return 1;
+    // }
+    // if (strcmp(argv[argc - 1], "fifo") && strcmp(argv[argc - 1], "edf"))
+    // {
+    //     fprintf(stderr, "Error, the last output shoulld be fifo or edf\n");
+    //     return 1;
+    // }
+    // while (i < argc - 1)
+    // {
+    //     if (valid_int(argv[i]) == 0){
+    //         fprintf(stderr, "Error: invalide input");
+    //         return 1;
+    //     }
+    //     if (i == 1 && atoi(argv[i]) == 0){
+    //         fprintf(stderr, "Error: number_of_coders must be greater than 0\n");
+    //         return 1;
+    //     }
+    //     // printf("%d\n", atoi(argv[i]));
+    //     i++;
+    // }
 
 
     t_config my_confg;
-    my_confg.number_of_coders = atoi(argv[1]);
-    my_confg.time_to_burnout = atoi(argv[2]);
-    my_confg.time_to_compile = atoi(argv[3]);
-    my_confg.time_to_debug = atoi(argv[4]);
-    my_confg.time_to_refactor = atoi(argv[5]);
-    my_confg.number_of_compiles_required = atoi(argv[6]);
-    my_confg.dongle_cooldown = atoi(argv[7]);
+    // my_confg.number_of_coders = atoi(argv[1]);
+    // my_confg.time_to_burnout = atoi(argv[2]);
+    // my_confg.time_to_compile = atoi(argv[3]);
+    // my_confg.time_to_debug = atoi(argv[4]);
+    // my_confg.time_to_refactor = atoi(argv[5]);
+    // my_confg.number_of_compiles_required = atoi(argv[6]);
+    // my_confg.dongle_cooldown = atoi(argv[7]);
     
-    my_confg.scheduler = argv[8];
+    // my_confg.scheduler = argv[8];
 
     pthread_mutex_init(&my_confg.mutex_for_stop, NULL);
     pthread_mutex_init(&my_confg.mutex_for_printing, NULL);
-    my_confg.stop = 0;
+    // my_confg.stop = 0;
     
-    my_confg.all_codes = NULL;
-    my_confg.all_dongles = NULL;
+    // my_confg.all_codes = NULL;
+    // my_confg.all_dongles = NULL;
 
 
 

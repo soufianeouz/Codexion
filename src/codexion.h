@@ -62,7 +62,11 @@ struct s_config
     int stop;
     t_coder *all_codes;
     t_dongle *all_dongles;
+    pthread_t *threads;
+    pthread_t monitor_thread;
 };
 
+void *coder_thread(void *arg);
+void *monitor(void *arg);
 
 #endif
