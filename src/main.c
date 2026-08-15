@@ -7,7 +7,6 @@ int main(int argc, char **argv)
     t_config config;
     if (!parse_arguments(argc, argv, &config))
         return (1);
-
     if (!init_program(&config))
         return (1);
     i = 0;
@@ -18,5 +17,6 @@ int main(int argc, char **argv)
     }
 
     pthread_join(config.monitor_thread, NULL);
+    free_function(&config);
     return 0;
 }

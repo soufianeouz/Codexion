@@ -1,28 +1,29 @@
-void	*coder_thread(void *arg)
-{
-	t_coder	*a_coder;
+// #include "codexion.h"
 
-	a_coder = (t_coder *)arg;
-	while (1)
-	{
-		lock_dongles(a_coder);
-		request_dongles(a_coder);
-		if (queue_is_first(a_coder->left, a_coder)
-			&& queue_is_first(a_coder->right, a_coder))
-		{
-			if (dongles_ready(a_coder) == 1)
-			{
-				if (compile_cycle(a_coder) == 0)
-					break;
-			}
-			else
-				wait_dongles(a_coder);
-		}
-		else
-		{
-			unlock_dongles(a_coder);
-			usleep(1000);
-		}
-	}
-	return (NULL);
-}
+// void edf_request(t_dongle *dongle, t_coder *coder){
+//     int i;
+//     long long deadline1;
+//     long long deadline2;
+
+// 	i = 0;
+//     while (i < 2)
+//     {
+//         if (dongle->queue[i] == coder)
+//             return;
+//         i++;
+//     }
+//     if (dongle->queue[0] == NULL){
+//         dongle->queue[0] = coder;
+//     }
+//     else
+//     {
+//         deadline1 = dongle->queue[0]->last_compile_start + dongle->queue[0]->config->time_to_burnout;
+//         deadline2 = coder->last_compile_start + coder->config->time_to_burnout;
+//         if (deadline2 < deadline1){
+//             dongle->queue[1] = dongle->queue[0];
+//             dongle->queue[0] = coder;
+//         }else
+//             dongle->queue[1] = coder;
+//     }
+    
+// }

@@ -1,16 +1,43 @@
 #include "codexion.h"
 
+int init_mutexes(t_config *config)
+{
+    if (pthread_mutex_init(&config->mutex_for_stop, NULL) != 0)
+        return (0);
+    if (pthread_mutex_init(&config->mutex_for_printing, NULL) != 0)
+    {
+        pthread_mutex_destroy(&config->mutex_for_stop);
+        return (0);
+    }
+    return (1);
+}
+
+// void destroy_dongle_mutexes(t_dongle *dongles, int count)
+// {
+//     while (count > 0)
+//     {
+//         count--;
+//         pthread_mutex_destroy(&dongles[count].mutex);
+//     }
+// }
+
 int init_dongles(t_config *config)
 {
     int i;
-    t_dongle *my_dongles = malloc(sizeof(t_dongle) * config->number_of_coders);
+
+    t_dongle *my_dongles; 
+    my_dongles = malloc(sizeof(t_dongle) * config->number_of_coders);
     if (my_dongles == NULL)
         return 0;
-
     i = 0;
     while (i < config->number_of_coders)
     {
-        pthread_mutex_init(&my_dongles[i].mutex, NULL);
+        if (pthread_mutex_init(&my_dongles[i].mutex, NULL) != 0)
+        {
+            destroy_dongle_mutexes(my_dongles, i);
+            free(my_dongles);
+            return (0);
+        }
         my_dongles[i].last_released = 0;
         my_dongles[i].waiter_count = 0;
         my_dongles[i].queue[0] = NULL;
@@ -19,7 +46,6 @@ int init_dongles(t_config *config)
         i++;
     }
     config->all_dongles = my_dongles;
-
     return 1;
 }
 int init_coders(t_config *config){
@@ -77,14 +103,20 @@ int init_threads(t_config *config)
 
 int init_program(t_config *config)
 {
+    if (!init_mutexes(config))
+        return (0);
     if (!init_dongles(config))
         return (0);
 
     if (!init_coders(config))
+    {
+        free(config->all_dongles);
         return (0);
-    
+    }
     if (!init_threads(config))
+    {
+        free_function(config);
         return (0);
-
+    }
     return (1);
 }

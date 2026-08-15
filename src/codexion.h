@@ -8,7 +8,7 @@
 #include <sys/time.h>
 #include <string.h>
 
-struct timeval tv;
+// struct timeval tv;
 typedef struct s_coder t_coder;
 typedef struct s_dongle t_dongle;
 typedef struct s_config t_config;
@@ -68,6 +68,35 @@ struct s_config
 
 void *coder_thread(void *arg);
 void *monitor(void *arg);
-long long get_time_ms(void)
+long long get_time_ms(void);
+void wait_dongles(t_coder *coder);
+void take_dongles(t_coder *coder);
+void coder_compile(t_coder *coder);
+void debug(t_coder *coder);
+void refactor(t_coder *coder);
+void lock_dongles(t_coder *coder);
+void unlock_dongles(t_coder *coder);
+int compile_cycle(t_coder *coder);
+int dongles_ready(t_coder *coder);
+void	*coder_thread(void *arg);
+void edf_request(t_dongle *dongle, t_coder *coder);
+void fifo_request(t_dongle *dongle, t_coder *coder);
+int init_dongles(t_config *config);
+int init_coders(t_config *config);
+int init_threads(t_config *config);
+int init_program(t_config *config);
+int check_burnout(t_config *config);
+int check_completion(t_config *config);
+int valid_int(char *str);
+int check_arguments(int argc, char **argv);
+int parse_arguments(int argc, char **argv, t_config *config);
+int queue_is_first(t_dongle *dongle, t_coder *coder);
+void queue_pop(t_dongle *dongle);
+void request_dongles(t_coder *coder);
+void destroy_config_mutexes(t_config *config);
+void destroy_dongle_mutexes(t_dongle *dongles, int count);
+void free_function(t_config *config);
+void destroy_dongle_mutexes(t_dongle *dongles, int count);
+
 
 #endif
