@@ -60,12 +60,14 @@ struct s_config
     pthread_mutex_t mutex_for_printing;
     
     int stop;
+    long long start_time;
     t_coder *all_codes;
     t_dongle *all_dongles;
     pthread_t *threads;
     pthread_t monitor_thread;
 };
 
+long long get_elapsed_time(t_config *config);
 void *coder_thread(void *arg);
 void *monitor(void *arg);
 long long get_time_ms(void);

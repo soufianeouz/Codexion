@@ -7,7 +7,7 @@ int check_burnout(t_config *config){
     i = 0;
     while (i < config->number_of_coders)
     {
-        timing = get_time_ms();
+        timing = get_elapsed_time(config);;
         if (timing - config->all_codes[i].last_compile_start
             >= config->time_to_burnout)
         {

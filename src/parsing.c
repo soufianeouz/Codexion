@@ -49,6 +49,7 @@ int parse_arguments(int argc, char **argv, t_config *config){
 
     if (check_arguments(argc, argv) == 0)
         return (0);
+    config->start_time = get_time_ms();
     config->number_of_coders = atoi(argv[1]);
     config->time_to_burnout = atoi(argv[2]);
     config->time_to_compile = atoi(argv[3]);
