@@ -11,7 +11,11 @@ SRC = src/main.c \
       src/monitor.c \
       src/parsing.c \
       src/queue.c \
-	  src/scheduler.c
+	src/scheduler.c \
+      src/functions_init.c \
+      src/time_utils.c\
+      src/lock_unclock.c
+
 
 OBJ = $(SRC:.c=.o)
 

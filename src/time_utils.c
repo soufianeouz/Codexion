@@ -1,32 +1,26 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   init.c                                             :+:      :+:    :+:   */
+/*   time_utils.c                                       :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/08/16 12:06:25 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/16 13:10:30 by selouizg         ###   ########.fr       */
+/*   Created: 2026/08/16 11:33:00 by selouizg          #+#    #+#             */
+/*   Updated: 2026/08/16 11:33:04 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
 
-int	init_program(t_config *config)
+long long	get_time_ms(void)
 {
-	if (!init_mutexes(config))
-		return (0);
-	if (!init_dongles(config))
-		return (0);
-	if (!init_coders(config))
-	{
-		free(config->all_dongles);
-		return (0);
-	}
-	if (!init_threads(config))
-	{
-		free_function(config);
-		return (0);
-	}
-	return (1);
+	struct timeval	tv;
+
+	gettimeofday(&tv, NULL);
+	return (tv.tv_sec * 1000 + tv.tv_usec / 1000);
+}
+
+long long	get_elapsed_time(t_config *config)
+{
+	return (get_time_ms() - config->start_time);
 }
