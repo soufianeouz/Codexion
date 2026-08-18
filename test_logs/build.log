@@ -1,0 +1,15 @@
+rm -f src/main.o src/actions.o src/cleanup.o src/coder.o src/init.o src/monitor.o src/parsing.o src/queue.o src/scheduler.o src/functions_init.o src/time_utils.o src/lock_unclock.o
+rm -f codexion
+cc -Wall -Wextra -Werror -pthread -I src -c src/main.c -o src/main.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/actions.c -o src/actions.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/cleanup.c -o src/cleanup.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/coder.c -o src/coder.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/init.c -o src/init.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/monitor.c -o src/monitor.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/parsing.c -o src/parsing.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/queue.c -o src/queue.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/scheduler.c -o src/scheduler.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/functions_init.c -o src/functions_init.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/time_utils.c -o src/time_utils.o
+cc -Wall -Wextra -Werror -pthread -I src -c src/lock_unclock.c -o src/lock_unclock.o
+cc -Wall -Wextra -Werror -pthread src/main.o src/actions.o src/cleanup.o src/coder.o src/init.o src/monitor.o src/parsing.o src/queue.o src/scheduler.o src/functions_init.o src/time_utils.o src/lock_unclock.o -o codexion

@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 11:32:16 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/16 11:32:48 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/18 12:19:36 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,8 @@ void	take_dongles(t_coder *coder)
 	timing = get_elapsed_time(coder->config);
 	pthread_mutex_lock(&coder->config->mutex_for_printing);
 	printf("%lld %d has taken a dongle\n", timing, coder->id);
-	printf("%lld %d has taken a dongle\n", timing, coder->id);
+	if (coder->config->number_of_coders != 1)
+		printf("%lld %d has taken a dongle\n", timing, coder->id);
 	pthread_mutex_unlock(&coder->config->mutex_for_printing);
 }
 

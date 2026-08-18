@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 13:12:50 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/16 17:12:48 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/18 12:33:56 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,7 +16,7 @@ int	valid_int(char *str)
 {
 	int	i;
 
-	i = 01;
+	i = 0;
 	if (str[0] == '\0')
 		return (0);
 	while (str[i] != '\0')
@@ -52,14 +52,14 @@ int	check_arguments(int argc, char **argv)
 		return (0);
 	while (i < argc - 1)
 	{
-		if (valid_int(argv[i]) == 0)
-		{
-			fprintf(stderr, "Error: invalide input");
-			return (0);
-		}
 		if (i == 1 && atoi(argv[i]) == 0)
 		{
 			fprintf(stderr, "Error: number_of_coders must be greater than 0\n");
+			return (0);
+		}
+		if (valid_int(argv[i]) == 0)
+		{
+			fprintf(stderr, "Error: invalide input\n");
 			return (0);
 		}
 		i++;

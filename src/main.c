@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 13:11:00 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/16 13:11:35 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/18 12:26:26 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@ int	main(int argc, char **argv)
 	int			i;
 	t_config	config;
 
-	if (!parse_arguments(argc, argv, &config))
+	if (parse_arguments(argc, argv, &config) == 0)
 		return (1);
 	if (!init_program(&config))
 		return (1);
