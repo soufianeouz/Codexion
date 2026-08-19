@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 11:32:16 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/18 12:19:36 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/19 00:16:37 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ void	coder_compile(t_coder *coder)
 {
 	long long	timing;
 
-	timing = get_time_ms();
+	timing = coder->last_compile_start = get_elapsed_time(coder->config);
 	pthread_mutex_lock(&coder->config->mutex_for_stop);
 	coder->state = COMPILING;
 	coder->last_compile_start = timing;

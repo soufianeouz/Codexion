@@ -6,18 +6,34 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 11:41:46 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/16 12:46:18 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/19 12:27:12 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
+
+int check_the_stop(t_coder *coder){
+	if (coder->config->stop == 1)
+	{
+		return 0;
+		pthread_mutex_unlock(&coder->config->mutex_for_stop);
+	}
+	
+	return 1;
+	
+}
+
 
 int	compile_cycle(t_coder *coder)
 {
 	long long	timing;
 
 	take_dongles(coder);
+	if (check_the_stop(coder) == 0)
+		return 0;
 	coder_compile(coder);
+	if (check_the_stop(coder) == 0)
+		return 0;
 	queue_pop(coder->left);
 	queue_pop(coder->right);
 	timing = get_time_ms();
@@ -28,13 +44,13 @@ int	compile_cycle(t_coder *coder)
 	coder->compile_count++;
 	pthread_mutex_unlock(&coder->config->mutex_for_stop);
 	pthread_mutex_lock(&coder->config->mutex_for_stop);
-	if (coder->config->stop == 1)
-	{
-		pthread_mutex_unlock(&coder->config->mutex_for_stop);
-		return (0);
-	}
+	if (check_the_stop(coder) == 0)
+		return 0;
+	
 	pthread_mutex_unlock(&coder->config->mutex_for_stop);
 	debug(coder);
+	if (check_the_stop(coder) == 0)
+		return 0;
 	refactor(coder);
 	return (1);
 }
