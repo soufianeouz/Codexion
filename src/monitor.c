@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 13:12:11 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/18 23:42:00 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/19 16:16:38 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,7 +25,7 @@ int	check_burnout(t_config *config)
 			>= config->time_to_burnout)
 		{
 			pthread_mutex_lock(&config->mutex_for_printing);
-			printf("%lld %d burned out\n", timing, config->all_codes[i].id);
+			printf("%lld %d burned out\n", timing, config->all_codes[i].id + 1);
 			pthread_mutex_unlock(&config->mutex_for_printing);
 			config->stop = 1;
 			return (0);
@@ -57,9 +57,11 @@ void	*monitor(void *arg)
 {
 	t_config	*config;
 
-	config = (t_config *)arg;
+	config = (t_config *)arg;	
 	while (1)
 	{
+		if (config->stop == 1)
+			return (NULL);
 		pthread_mutex_lock(&config->mutex_for_stop);
 		if (check_burnout(config) == 0)
 		{

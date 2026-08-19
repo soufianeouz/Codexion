@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 18:32:11 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/16 18:32:18 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/19 15:35:05 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -72,6 +72,7 @@ struct s_config
 	pthread_t		monitor_thread;
 };
 
+int			check_the_stop(t_coder *coder);
 void		lock_dongles(t_coder *coder);
 void		unlock_dongles(t_coder *coder);
 int			init_mutexes(t_config *config);
