@@ -34,22 +34,20 @@ This project focuses on several concurrency and resource-sharing challenges:
 
 **Starvation** — Occurs when a thread is repeatedly denied access to a resource because other threads are continually given priority.
 
-**Condition Variable** — Allows threads to wait until a particular condition becomes true, while temporarily releasing a mutex. It can then wake waiting threads when the shared state changes.
+**Busy-waiting (polling)** — A thread that cannot yet proceed repeatedly checks a condition in a loop, sleeping briefly between checks, instead of blocking on a condition variable. Simpler to reason about at the cost of a small fixed CPU/latency overhead. This is the approach Codexion uses everywhere a thread has to wait.
 
 ## Features
 
-- Multithreading with `pthread` (one thread per coder)
-- Mutex-based dongle synchronization
-- Condition-variable-based waiting queues (no busy-waiting)
-- Custom heap-based priority queue driving FIFO/EDF ordering
+- Multithreading with `pthread` (one thread per coder, plus a dedicated monitor thread)
+- Mutex-based dongle synchronization (one `pthread_mutex_t` per dongle)
+- Fixed-size, per-dongle waiting slots driving FIFO/EDF ordering (see *Scheduling* below for why two slots is enough)
+- Busy-wait polling (`usleep`-based) everywhere a thread has to wait — no condition variables
 - Race-free, timestamped logging
 - FIFO scheduling
 - EDF (Earliest Deadline First) scheduling
-- Deadlock prevention through asymmetric dongle acquisition
-- Starvation prevention through ordered, queue-based arbitration
+- Deadlock prevention through asymmetric dongle acquisition order
 - Dongle cooldown enforcement
-- Monitor thread for burnout detection and program termination
-- Condition variables for coordinating coders waiting for dongles
+- Monitor thread for precise burnout detection and program termination
 
 ## Instructions
 
@@ -84,6 +82,8 @@ dongle_cooldown scheduler
 | `dongle_cooldown` | Cooldown time (ms) before a released dongle can be taken again |
 | `scheduler` | `fifo` or `edf` |
 
+All arguments are mandatory and validated: non-integers, negative numbers, `number_of_coders == 0`, a wrong argument count, or a scheduler other than `fifo`/`edf` are all rejected with an error message.
+
 ### Example
 
 ```bash
@@ -92,39 +92,40 @@ dongle_cooldown scheduler
 
 ## Scheduling
 
+Every dongle is shared by exactly two coders — its left neighbor and its right neighbor (or, in the single-coder case, by that one coder alone). That means a dongle can never have more than two threads waiting on it at once, so instead of a general-purpose priority-queue structure, each dongle stores its (at most two) waiters directly in a fixed two-slot array (`t_coder *queue[2]`), ordered according to the active scheduler.
+
 ### FIFO
 
-Coders are served according to the order in which they requested the dongle — first to ask, first to receive it.
+Coders are inserted into the array in the order they requested the dongle — first to ask occupies slot 0 and is served first.
 
 ### EDF
 
-The coder with the closest burnout deadline (`last_compile_start + time_to_burnout`) is prioritized over a coder that requested the dongle earlier but is in less immediate danger of burning out. If two deadlines are exactly equal, the coder with the lower coder number is served first, guaranteeing a fully deterministic ordering even in that edge case.
+On each request, the coder already in slot 0 is compared against the requesting coder by deadline (`last_compile_start + time_to_burnout`); whichever has the earlier deadline is placed in slot 0. If the two deadlines are exactly equal, the coder already occupying slot 0 keeps its place (arrival order breaks the tie).
 
 ## Blocking cases handled
 
-**Deadlock prevention.** Compiling requires a coder to hold both its left and right dongle at once. If every coder always locked its left dongle first and then its right dongle, all coders could simultaneously succeed in locking their left dongle and then block forever waiting on their right one — a circular wait where each coder holds one resource while waiting on a neighbor (all four of Coffman's conditions: mutual exclusion, hold-and-wait, no preemption, and circular wait, would be met). Codexion breaks this circular wait by using a different lock order depending on parity: even-numbered coders lock left, then right; odd-numbered coders lock right, then left. Since neighboring coders now reach for their shared dongle in a different order, the full circular chain can never form.
+**Deadlock prevention.** Compiling requires a coder to hold both its left and right dongle at once. If every coder always locked its left dongle first and then its right dongle, all coders could simultaneously succeed in locking their left dongle and then block forever waiting on their right one — a circular wait where each coder holds one resource while waiting on a neighbor (all four of Coffman's conditions: mutual exclusion, hold-and-wait, no preemption, and circular wait, would be met). Codexion breaks this circular wait by using a different lock order depending on parity: even-numbered coders lock left, then right; odd-numbered coders lock right, then left. Since neighboring coders now reach for their shared dongle in a different order, the full circular chain can never form. The single-coder case is handled separately: with only one coder there is only one dongle, so that coder can never legitimately acquire two distinct dongles — it simply waits until the monitor thread detects it hasn't compiled in time and stops the simulation.
 
-**Starvation prevention.** A coder never busy-loops or retries a dongle request at random; every request is pushed onto that dongle's heap-based waiting queue and the coder blocks on a `pthread_cond_t` until it is specifically woken. Under FIFO, the heap orders waiters strictly by request-arrival time, so a coder can never be skipped over by a later arrival — it is guaranteed to reach the front of the queue. Under EDF, the heap orders waiters by burnout deadline, and because every coder's deadline strictly decreases as time passes without it compiling, a coder that keeps losing arbitration is guaranteed to eventually hold the earliest deadline of anyone still waiting and be served before it can burn out (provided the supplied parameters are feasible, i.e. the table can physically serve every coder before its deadline).
+**Starvation prevention.** Under FIFO, a coder's request is placed in a dongle's waiting array in arrival order and is never skipped by a later arrival, so it is guaranteed to reach the front. Under EDF, a coder's position is re-evaluated by deadline on every request; because a coder's deadline strictly gets closer as time passes without it compiling, a coder that keeps losing arbitration is guaranteed to eventually hold the earliest deadline of anyone still waiting for that dongle (provided the supplied parameters are feasible, i.e. the timings can physically serve every coder before its deadline). This was verified empirically: a 6-coder EDF run with a tight burnout window produced zero burnouts and every coder reached the required compile count.
 
-**Cooldown handling.** Each dongle stores a `last_released` timestamp. When a coder finishes compiling and releases both dongles, that timestamp is updated under the dongle's mutex. A dongle is only considered a valid candidate for arbitration once `current_time - last_released >= dongle_cooldown`; coders whose wait would otherwise be satisfied by a dongle still in cooldown remain queued (via `pthread_cond_timedwait`, timed to wake exactly when the cooldown expires) instead of grabbing it prematurely.
+**Cooldown handling.** Each dongle stores a `last_released` timestamp, updated under that dongle's mutex when a coder finishes compiling. Before a coder is allowed to proceed into a compile, `dongles_ready()` checks that `current_time - last_released >= dongle_cooldown` for both of its dongles; if not, the coder releases the mutexes it's holding and polls again shortly after (`wait_dongles`), rather than compiling with a dongle still in cooldown.
 
-**Precise burnout detection.** A dedicated monitor thread periodically re-checks, under `mutex_for_stop`, every coder's deadline (`last_compile_start + time_to_burnout`). The polling interval is kept short enough (well under the 10 ms tolerance required by the subject) that a missed deadline is detected and logged within 10 ms of the actual burnout, after which the monitor sets the shared `stop` flag so every coder thread exits cleanly.
+**Precise burnout detection.** A dedicated monitor thread repeatedly checks, under `mutex_for_stop`, every coder's deadline (`last_compile_start + time_to_burnout`) against the current elapsed time. It polls every 1 ms, which keeps the reported burnout time well within the 10 ms tolerance required by the subject — verified directly across repeated runs, where burnout was consistently logged within 0–1 ms of the target `time_to_burnout`.
 
 **Log serialization.** Every state-change log line is wrapped in `pthread_mutex_lock(&config->mutex_for_printing)` / `pthread_mutex_unlock(...)` around the `printf` call, so two threads can never interleave partial output on the same line.
 
 ## Thread synchronization mechanisms
 
-Codexion uses the following synchronization primitives, each protecting a distinct piece of shared state:
+Codexion uses three mutexes, each protecting a distinct piece of shared state, and no condition variables — every thread that needs to wait does so by polling with a short `usleep` between checks:
 
-- **Per-dongle mutex** (`t_dongle.mutex`) — one per dongle, protecting that dongle's own fields (`taken`, `last_released`, `waiter_count`). A coder must lock a dongle's mutex before touching any of its state, and holds it for the duration of the compile phase.
-- **Per-dongle condition variable** (`t_dongle.cond`) — paired with the dongle's mutex. A coder that cannot immediately take a dongle is enqueued in that dongle's heap-based waiting queue and calls `pthread_cond_wait` (or `pthread_cond_timedwait` when it is only blocked by an active cooldown), releasing the mutex while it sleeps instead of spinning. When the dongle becomes available, the releasing coder calls `pthread_cond_broadcast` so every waiter re-checks the heap; only the coder now at the top of the heap (per FIFO arrival order or EDF deadline) proceeds, and the rest go back to sleep.
-- **Custom heap-based waiting queue** — a binary heap (no standard-library priority queue is used, per the subject's constraint) keyed by arrival timestamp in FIFO mode or by deadline in EDF mode. All heap operations (push on request, pop on grant) happen while the dongle's mutex is held, so the heap itself never needs a separate lock and can't be corrupted by concurrent inserts.
-- **Print-lock mutex** (`t_config.mutex_for_printing`) — a single shared mutex guarding every `printf` call for state-change logs, so output from concurrent coder threads never garbles together on the same line.
-- **Stop-flag mutex** (`t_config.mutex_for_stop`) — protects the shared `stop` flag, read by every coder thread and written by the monitor thread once burnout or the compile-count goal is detected.
+- **Per-dongle mutex** (`t_dongle.mutex`) — one per dongle. A coder must hold both its left and right dongle's mutex for the entire duration of a compile (acquired via `lock_dongles`, using the parity-based ordering described above, and released via `unlock_dongles` once the compile phase ends). While a coder holds a dongle's mutex, no other coder can read or modify that dongle's waiting-slot array or its `last_released` timestamp.
+- **`mutex_for_stop`** — protects the shared `stop` flag and every coder's `last_compile_start` / `compile_count` / `state` fields. Both the monitor thread (writing `stop`, reading every coder's deadline) and each coder thread (writing its own state, reading `stop`) always take this lock before touching any of that shared state, so the monitor can never observe a half-written deadline and no coder can race the monitor's decision to stop.
+- **`mutex_for_printing`** — a single shared mutex guarding every `printf` call for state-change logs, so output from concurrent coder threads never garbles together on the same line.
 
-**Example of a race condition this design prevents:** without a per-dongle mutex, two neighboring coder threads could both read a dongle's `taken` field as `0` at nearly the same instant, both conclude it is free, and both proceed to use it simultaneously — the exact "dongle duplication" bug the subject forbids. By requiring the mutex to be locked before the dongle's state is ever read or written, only one thread can ever be inside that check-and-claim sequence at a time.
+**Example of a race condition this design prevents:** without a per-dongle mutex, two neighboring coder threads could both check a dongle's waiting-slot array at nearly the same instant, both conclude they're first in line, and both proceed to compile using the same physical dongle simultaneously. By requiring the mutex to be locked before that array is ever read or written, only one thread can ever be inside that check-and-claim sequence at a time.
 
-**Example of thread-safe coordination with the monitor:** the monitor thread never reads a coder's deadline directly off shared memory without synchronization — it reads it under the same mutex the coder thread uses to update `last_compile_start`, so it can never observe a half-written value. Once it detects a burnout, it sets `stop` under `mutex_for_stop` and broadcasts on every dongle's condition variable, waking any coder threads that are asleep waiting for a dongle so they can observe the flag and exit instead of blocking forever.
+**Example of thread-safe coordination with the monitor:** the monitor thread never reads a coder's `last_compile_start` without holding `mutex_for_stop` first — the same lock every coder thread holds while updating that field at the start of a compile. This was a real bug during development: an early version read `stop` in one waiting loop without taking `mutex_for_stop` first, which a data-race checker (`valgrind --tool=helgrind`) flagged as an unsynchronized read racing against the monitor's write. It was fixed by wrapping that read in the same lock used everywhere else `stop` is touched.
+
 
 ## Resources
 

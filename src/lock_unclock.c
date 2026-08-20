@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 12:00:53 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/19 15:34:35 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/20 12:56:01 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,6 @@ int	check_the_stop(t_coder *coder)
 	if (coder->config->stop == 1)
 	{
 		pthread_mutex_unlock(&coder->config->mutex_for_stop);
-		unlock_dongles(coder);
 		return (0);
 	}
 	pthread_mutex_unlock(&coder->config->mutex_for_stop);

@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 13:12:11 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/19 16:16:38 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/20 12:42:43 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -57,7 +57,7 @@ void	*monitor(void *arg)
 {
 	t_config	*config;
 
-	config = (t_config *)arg;	
+	config = (t_config *)arg;
 	while (1)
 	{
 		if (config->stop == 1)

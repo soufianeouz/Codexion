@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 13:08:41 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/16 13:09:18 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/19 22:37:00 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,7 @@ void	helper_init_coder(t_config *config, t_coder *coder)
 	long long	timing;
 
 	i = 0;
-	timing = get_time_ms();
+	timing = get_elapsed_time(config);
 	while (i < config->number_of_coders)
 	{
 		coder[i].id = i;

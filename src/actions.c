@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 11:32:16 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/19 16:15:08 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/20 01:21:18 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,9 +28,9 @@ void	take_dongles(t_coder *coder)
 	timing = get_elapsed_time(coder->config);
 	if (coder->config->number_of_coders == 1)
 	{
-		printf("%lld %d burned out\n", timing, 1);
-		coder->config->stop = 1;
-		return;
+		while (coder->config->stop == 0)
+			usleep(1000);
+		return ;
 	}
 	pthread_mutex_lock(&coder->config->mutex_for_printing);
 	printf("%lld %d has taken a dongle\n", timing, coder->id + 1);
