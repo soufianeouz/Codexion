@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 13:08:41 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/19 22:37:00 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/21 01:51:48 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,10 +36,17 @@ int	init_threads(t_config *config)
 	{
 		if (pthread_create(&config->threads[i], NULL,
 				coder_thread, &config->all_codes[i]) != 0)
+		{
+			stop_and_join_threads(config, i);
 			return (0);
+		}
 		i++;
 	}
-	pthread_create(&config->monitor_thread, NULL, monitor, config);
+	if (pthread_create(&config->monitor_thread, NULL, monitor, config) != 0)
+	{
+		stop_and_join_threads(config, i);
+		return (0);
+	}
 	return (1);
 }
 
