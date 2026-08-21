@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 13:12:50 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/18 12:33:56 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/21 15:15:27 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,11 @@ int	check_arguments(int argc, char **argv)
 		if (valid_int(argv[i]) == 0)
 		{
 			fprintf(stderr, "Error: invalide input\n");
+			return (0);
+		}
+		if (i == 6 && atoi(argv[i]) == 0)
+		{
+			fprintf(stderr, "Error: number_of_compile must be !=0\n");
 			return (0);
 		}
 		i++;

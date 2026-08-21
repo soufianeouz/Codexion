@@ -6,7 +6,7 @@
 /*   By: selouizg <selouizg@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/16 11:34:14 by selouizg          #+#    #+#             */
-/*   Updated: 2026/08/21 01:50:49 by selouizg         ###   ########.fr       */
+/*   Updated: 2026/08/21 15:16:01 by selouizg         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -44,4 +44,3 @@ void	stop_and_join_threads(t_config *config, int count)
 	while (--count >= 0)
 		pthread_join(config->threads[count], NULL);
 }
-
